@@ -2,47 +2,54 @@ import type { Schema } from "../amplify/data/resource";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useEffect, useState } from "react";
 import { generateClient } from "aws-amplify/data";
+import "./App.css";
+import { Todo } from "./models/models";
+import InputFeild from "./components/InputFeild";
+import TodoList from "./components/TodoList";
 
 const client = generateClient<Schema>();
 
-function App() {
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+const App: React.FC = () => {
+  const [todo, setTodo] = useState<string>("");
+  const [todos, setTodos] = useState<Todo[]>([]);
   const { user, signOut } = useAuthenticator();
+
   useEffect(() => {
-    client.models.Todo.observeQuery().subscribe({
-      next: (data) => setTodos([...data.items]),
-    });
+    updateTodoList();
   }, []);
 
-  function createTodo() {
-    client.models.Todo.create({ content: window.prompt("Todo content") });
-  }
+  const createTodo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (todo) {
+      await client.models.Todo.create({ content: todo, isDone: false });
+      updateTodoList();
+      setTodo("");
+    }
+  };
 
-  function deleteTodo(id: string) {
-    client.models.Todo.delete({ id });
-  }
+  const updateTodoList = async () => {
+    const result = await client.models.Todo.list();
+    setTodos([]);
+    result.data.sort().forEach((item) => {
+      setTodos((prevTodos) => [
+        ...prevTodos,
+        { id: item.id, todo: item.content, isDone: item.isDone },
+      ]);
+    });
+  };
 
   return (
     <main>
-      <h1>{user?.signInDetails?.loginId}'s todos</h1>
-      <button onClick={createTodo}>+ new</button>
-      <ul>
-        {todos.map((todo) => (
-          <li onClick={() => deleteTodo(todo.id)} key={todo.id}>
-            {todo.content}
-          </li>
-        ))}
-      </ul>
-      <div>
-        🥳 App successfully hosted. Try creating a new todo.
-        <br />
-        <a href="https://docs.amplify.aws/react/start/quickstart/#make-frontend-updates">
-          Review next step of this tutorial.
-        </a>
+      <div className="App">
+        <span className="heading">
+          {user?.signInDetails?.loginId}'s To Do List
+        </span>
+        <InputFeild todo={todo} setTodo={setTodo} createTodo={createTodo} />
+        <TodoList todos={todos} setTodos={setTodos} />
+        <button onClick={signOut}>Sign out</button>
       </div>
-      <button onClick={signOut}>Sign out</button>
     </main>
   );
-}
+};
 
 export default App;
