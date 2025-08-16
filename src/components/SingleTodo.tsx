@@ -8,12 +8,12 @@ import type { Schema } from "../../amplify/data/resource";
 
 type Props = {
   todo: Todo;
-  setTodos: React.Dispatch<React.SetStateAction<Todo[]>>;
+  updateTodoList(): Promise<void>;
 };
 
 const client = generateClient<Schema>();
 
-const SingleTodo = ({ todo, setTodos }: Props) => {
+const SingleTodo = ({ todo, updateTodoList }: Props) => {
   const [edit, setEdit] = useState<boolean>(false);
   const [editTodo, setEditTodo] = useState<string>(todo.todo);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -21,17 +21,6 @@ const SingleTodo = ({ todo, setTodos }: Props) => {
   useEffect(() => {
     inputRef.current?.focus();
   }, [edit]);
-
-  const updateTodoList = async () => {
-    const result = await client.models.Todo.list();
-    setTodos([]);
-    result.data.sort().forEach((item) => {
-      setTodos((prevTodos) => [
-        ...prevTodos,
-        { id: item.id, todo: item.content, isDone: item.isDone },
-      ]);
-    });
-  };
 
   const handleDone = async (todo: Todo) => {
     const tmp = {
